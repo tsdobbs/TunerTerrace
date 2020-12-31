@@ -16,23 +16,55 @@ os.environ['API_KEY'] = key_from_file
 
 API_KEY = os.environ['API_KEY']
 
-url = "https://wft-geo-db.p.rapidapi.com/v1/geo/cities"
+API_URL = "https://wft-geo-db.p.rapidapi.com/v1/geo/cities"
 
-#LA: '+34.0522-118.2437'
-#Adelaide: '-34.9285+138.6007'
-#Windsor Locks, CT: '+41.9288-72.6481'
-location = '+41.9288-72.6481'
+def standardize_data(cities):
+    """
+    Some arbitrary rules to make sure that the geo api matches the radio api locations
+    """
+    #none yet
+    return cities
 
-querystring = {"limit":"5","minPopulation":"100000","types":"CITY","location":location,"radius":"75","distanceUnit":"MI"}
+def get_city_list(location, minPop =100):
+    querystring = {"limit":"5",
+                   "minPopulation":minPop,
+                   "types":"CITY",
+                   "location":location,
+                   "radius":"75",
+                   "distanceUnit":"MI",
+                   "sort":"-population"
+                  }
 
-headers = {
-    'x-rapidapi-key': API_KEY,
-    'x-rapidapi-host': "wft-geo-db.p.rapidapi.com"
-    }
+    headers = {
+        'x-rapidapi-key': API_KEY,
+        'x-rapidapi-host': "wft-geo-db.p.rapidapi.com"
+        }
 
-response = requests.request("GET", url, headers=headers, params=querystring)
+    response = requests.request("GET",
+                                "https://wft-geo-db.p.rapidapi.com/v1/geo/cities",
+                                headers=headers,
+                                params=querystring
+                               )
 
-cities = json.loads(response.text)['data']
+    try:
+        cities = json.loads(response.text)['data']
+    except:
+        print(response)
+    if len(cities) == 0 and minPop > 100: cities = get_city_list(location, minPop=100)
+    
+    cities = standardize_data(cities)
 
-for city in cities:
-    print(city)
+    return cities
+
+def test_city_api():
+    #LA: '+34.0522-118.2437'
+    #Adelaide: '-34.9285+138.6007'
+    #Windsor Locks, CT: '+41.9288-72.6481'
+    #Maharashtra Region, India: '+20.3404+76.9532'
+    #Buenos Aires, Argentina: '-34.5984-58.5746'
+    location = '+41.9288-72.6481'
+
+    cities = get_city_list(location)
+
+    for city in cities:
+        print(city)
